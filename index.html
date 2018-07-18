@@ -1,7 +1,316 @@
+<!-- === BEGIN HEADER === -->
 <!DOCTYPE html>
-<html>
-<body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
-</body>
+<!--[if IE 8]> <html lang="en" class="ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="en" class="ie9"> <![endif]-->
+<!--[if !IE]><!-->
+<html lang="en">
+    <!--<![endif]-->
+    <head>
+        <title>Summoners War Guild Data</title>
+        <!-- Meta -->
+        <meta name="msvalidate.01" content="C818B47E073445C5A5CFBF6243F373EA" />
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <meta name="description" content="To Be determined">
+        <meta name="author" content="David Grigsby">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <!-- Favicon -->
+	<link rel="icon" href="favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+	<link rel="icon" type="image/png" href="favicon-16x16.png" />
+	<!-- End Favicon -->
+	<link rel="manifest" href="manifest.json">
+	<meta name="msapplication-TileColor" content="#ffffff">
+	<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+	<meta name="theme-color" content="#ffffff">
+        <!-- SW CSS -->
+        <link rel="stylesheet" href="assets/css/sw.css" rel="stylesheet">
+        
+        <!-- Google Fonts-->
+        <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Open Sans:300,400" />
+        <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Source Sans Pro:300,400" />
+    </head>
+    <body>
+	<a href ="/assets/files/GhostAdventLogger.zip">Download Logger to Contribute</a>
+	<p>Notes about the stats:<br>
+	All stats include tower bonuses but do not include any leader skills.<br>
+	You can search for a guild matchup, siege matchup, or just by player or guild name.<br>
+	Default sort order shows the most recent entries at the top, sorted by position (1-6).<br>
+	Knowing stats does not guarantee success. May RNG be in your favor!
+	</p>
+	
+	<form method="post">
+	    <?php
+		$servername = "23.229.189.129";
+		$username = "swplayer1";
+		$password = "goswgo1";
+		$dbname = "SWBattleData";
+		$conn = new mysqli($servername, $username, $password, $dbname);
+		mysqli_set_charset($conn,"utf8");
+		if ($conn->connect_error) {
+			die("Connection failed: " . $conn->connect_error);
+		} 
+		$sql="SELECT m.oppGuildName, b.guildName, m.matchupEnd, m.MatchID FROM GuildWarMatchup as m 
+			  LEFT OUTER JOIN GuildWarBattles as b
+			  ON b.OppGuildID = m.guildID
+			  ORDER BY m.matchupEnd Desc Limit 10";
+		$result = $conn->query($sql);
+		// Populate a drop down list for recent guild battles created by contributors.
+		echo '<p><label>Select guild battle:</label><select name="Matchup" onchange="this.form.submit()">';
+		echo '<option value="None">None</option>';
+		while($row = $result->fetch_assoc()) {
+			$epoch = $row["matchupEnd"];
+			$dt = new DateTime("@$epoch");
+			$dt = $dt->format('Y-m-d');
+			if($row["guildName"]){
+				$attackGuildName = $row["guildName"];
+			}
+			else{
+				$attackGuildName = "???";
+			}
+			$matchup = $row["oppGuildName"] . " vs " . $attackGuildName . " on " . $dt;
+        echo '<option value="' . $row["MatchID"] . '">' . $matchup . '</option>';
+		}
+		echo '</select></p>';
+		//Populate the drop down list for recent siege battles
+		$sql="SELECT m.MatchID, m.guildID1, m.guildName1, m.guildID2, 
+				m.guildName2, m.guildID3, m.guildName3, m.matchStart 
+				FROM SiegeWarMatchup as m 
+				ORDER BY m.matchStart Desc Limit 10";
+		$result = $conn->query($sql);
+		
+		// Populate a drop down list for recent guild battles created by contributors.
+		echo '<p><label>Select siege battle:</label><select name="SiegeMatchup" onchange="this.form.submit()">';
+		echo '<option value="None">None</option>';
+		while($row = $result->fetch_assoc()) {
+			$epoch = $row["matchStart"];
+			$dt = new DateTime("@$epoch");
+			$dt = $dt->format('Y-m-d');
+			$matchup = $row["guildName1"] . " vs " . $row["guildName2"] . " vs " . $row["guildName3"] . "  on " . $dt;
+        echo '<option value="' . $row["MatchID"] . '">' . $matchup . '</option>';
+		}
+		echo '</select></p>';
+		
+		?>
+	<p><label>Search by defender:</label> <input type="text" name="playerName"></p>
+	<p><label>Search by attacker:</label> <input type="text" name="attackerName"></p>
+	<p><label>Search by guild:</label> <input type="text" name="guildName"></p>
+	<p><label>Search by monster:</label> <input type="text" name="monster"></p>
+	<input type="submit"/>
+	</form>
+	<form>
+    <button type="submit" formaction="http://www.girlsdayoutjc.com/sw.php">Reset</button>
+	</form>
+    
+    <?php
+$servername = "23.229.189.129";
+$username = "swplayer1";
+$password = "goswgo1";
+$dbname = "SWBattleData";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+mysqli_set_charset($conn,"utf8");
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+} 
+$search = False;
+$sqlSearch = "";
+//Guild name search
+if (isset($_POST["guildName"]) && $_POST["guildName"] != ""){
+	$sqlSearch .= "GuildName like '%" . $_POST["guildName"] . "%'";
+	$search = True;
+}
+//Player name search
+if (isset($_POST["playerName"]) && $_POST["playerName"] != ""){
+	if ($search){
+		$sqlSearch .= " and ";
+	}
+	$sqlSearch .= "DefenseWizardName like '%" . $_POST["playerName"] . "%'";
+	$search = True;
+}
+//Player name search
+if (isset($_POST["attackerName"]) && $_POST["attackerName"] != ""){
+	if ($search){
+		$sqlSearch .= " and ";
+	}
+	$sqlSearch .= "AttackerName like '%" . $_POST["attackerName"] . "%'";
+	$search = True;
+}
+//Monster
+if (isset($_POST["monster"]) && $_POST["monster"] != ""){
+	if ($search){
+		$sqlSearch .= " and ";
+	}
+	$sqlSearch .= "UnitName like '%" . $_POST["monster"] . "%'";
+	$search = True;
+}
+/*If no search criteria is given, show everything relevant about the first guild war
+if(!$search && (!isset($_POST["Matchup"]) || $_POST["Matchup"]=="None")){
+	$query = "SELECT MatchID FROM SWBattleData.GuildWarMatchup ORDER BY matchupEnd desc LIMIT 1";
+	$result = $conn->query($query);
+	$matchId = $result->fetch_assoc()["MatchID"];
+	$_POST["Matchup"] = $matchId;
+}
+*/
+if(!isset($_POST["Matchup"])){
+	$_POST["Matchup"] = "None";
+}
+if(!isset($_POST["SiegeMatchup"])){
+	$_POST["SiegeMatchup"] = "None";
+}
+
+//Search guild matchup
+if (!$search && $_POST["Matchup"]!="None") {
+	$sqlSearch = "";
+	//Find all of the wizardid's from the guild matchup members table to include in the search
+	$sql = "SELECT WizardID FROM GuildWarMatchupMembers WHERE MatchID=" . $_POST["Matchup"];
+	$result = $conn->query($sql);
+	if ($result->num_rows > 0) {
+		while($row = $result->fetch_assoc()) {
+			if ($search){
+				$sqlSearch .= " or ";
+			}
+			$sqlSearch .= "g.DefenseWizardID=" . $row["WizardID"];
+			$search = True;
+		}
+	}
+}
+
+//Search siege matchup
+if (!$search && $_POST["SiegeMatchup"]!="None") {
+	$sqlSearch = "";
+	//Find all of the wizardid's from the guild matchup members table to include in the search
+	$sql = "SELECT WizardID FROM SiegeWarMatchupMembers WHERE MatchID=" . $_POST["SiegeMatchup"];
+	$result = $conn->query($sql);
+	if ($result->num_rows > 0) {
+		while($row = $result->fetch_assoc()) {
+			if ($search){
+				$sqlSearch .= " or ";
+			}
+			$sqlSearch .= "g.DefenseWizardID=" . $row["WizardID"];
+			$search = True;
+		}
+	}
+}
+
+if (!$search){
+$sql = "SELECT * FROM GuildWarBattles as g
+		LEFT OUTER JOIN BattleResults as b
+		ON g.MatchID = b.MatchId AND g.AttackWizardID = b.AttackWizardID AND g.DefenseWizardID = b.DefenseWizardID AND ((g.UnitOrder IN (1,2,3) AND b.BattleNumber = 1) OR (g.UnitOrder IN (4,5,6) AND b.BattleNumber = 2))
+		ORDER BY TimeStamp Desc, UnitOrder Asc Limit 300";
+} else {
+/*$sql = "SELECT * FROM GuildWarBattles WHERE " . $sqlSearch . " ORDER BY TimeStamp Desc, UnitOrder Asc Limit 240";
+*/
+$sql = "SELECT * FROM GuildWarBattles as g
+		LEFT OUTER JOIN BattleResults as b
+		ON g.MatchID = b.MatchId AND g.AttackWizardID = b.AttackWizardID AND g.DefenseWizardID = b.DefenseWizardID AND ((g.UnitOrder IN (1,2,3) AND b.BattleNumber = 1) OR (g.UnitOrder IN (4,5,6) AND b.BattleNumber = 2))
+		WHERE " . $sqlSearch . " 
+		ORDER BY TimeStamp Desc, UnitOrder Asc Limit 300";
+}
+
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0) {
+    echo "<div id=\"card\"><table id=\"resultTable\"><thead><tr>
+	<th>Date</th>
+	<th>Guild</th>
+	<th>Def</th>
+	<th>Unit</th>
+	<th data-tsorter=\"numeric\">Speed</th>
+	<th data-tsorter=\"numeric\">Hit Points</th>
+	<th data-tsorter=\"numeric\">Defense</th>
+	<th data-tsorter=\"numeric\">Attack</th>
+	<th data-tsorter=\"numeric\">CritR</th>
+	<th data-tsorter=\"numeric\">CritD</th>
+	<th data-tsorter=\"numeric\">Res</th>
+	<th data-tsorter=\"numeric\">Acc</th>
+	<th>Sets</th>
+	<th>Off</th>
+	<th>Unit</th>
+	<!--th>Spd</th-->
+	<!--th>HP</th-->
+	<!--th>Def</th-->
+	<!--th>Atk</th-->
+	<!--th>CritR</th-->
+	<!--th>CritD</th-->
+	<!--th>Res</th-->
+	<!--th>Acc</th-->
+	<!--th>Sets</th-->
+	<th>Result</th>
+	</tr></thead><tbody>";
+    // output data of each row
+    while($row = $result->fetch_assoc()) {
+		$epoch = $row["TimeStamp"];
+		$dt = new DateTime("@$epoch");
+		$dt = $dt->format('Y-m-d');
+		$win = $row["Result"];
+		if($win == 1){
+			$win = "WIN";
+		}
+		else if($win == 2){
+			$win = "LOSE";
+		}
+		else if($win == 3){
+			$win = "DRAW";
+		}
+        echo "<tr>
+		<td data-label=\"Date\">".$dt."</td>
+		<td data-label=\"Guild\">".$row["GuildName"]."</td>
+		<td data-label=\"Defense Name\">".$row["DefenseWizardName"]."</td>
+		<td data-label=\"Unit\">".$row["UnitName"]."</td>
+		<td data-label=\"Speed\">".$row["SPD"]."</td>
+		<td data-label=\"Hp\">".$row["HP"]."</td>
+		<td data-label=\"Def\">".$row["DEF"]."</td>
+		<td data-label=\"Atk\">".$row["ATK"]."</td>
+		<td data-label=\"CritRate\">".$row["CritRate"]."</td>
+		<td data-label=\"CritDmg\">".$row["CritDmg"]."</td>
+		<td data-label=\"Res\">".$row["RES"]."</td>
+		<td data-label=\"Acc\">".$row["ACC"]."</td>
+		<td data-label=\"Sets\">".$row["Sets"]."</td>
+		<td data-label=\"Attacker\">".$row["AttackerName"]."</td>
+		<td data-label=\"Unit\">".$row["AttackUnit"]."</td>
+		<!--td data-label=\"ASpd\">".$row["AttackSPD"]."</td-->
+		<!--td data-label=\"AHp\">".$row["AttackHP"]."</td-->
+		<!--td data-label=\"ADef\">".$row["AttackDEF"]."</td-->
+		<!--td data-label=\"AAtk\">".$row["AttackATK"]."</td-->
+		<!--td data-label=\"ACritRate\">".$row["AttackCritRate"]."</td-->
+		<!--td data-label=\"ACritDmg\">".$row["AttackCritDMG"]."</td-->
+		<!--td data-label=\"ARes\">".$row["AttackRES"]."</td-->
+		<!--td data-label=\"AAcc\">".$row["AttackACC"]."</td-->
+		<!--td data-label=\"ASets\">".$row["AttackSets"]."</td-->
+		<td data-label=\"Result\">".$win."</td>
+
+		</tr>";
+    }
+    echo "</tbody></table></div>";
+} else {
+    echo "0 results";
+}
+$conn->close();
+?>
+
+        <!-- JS -->
+		<script>
+		function init() {
+    var sorter = tsorter.create('resultTable');
+}
+    
+window.onload = init;
+		</script>
+		<script type="text/javascript" src="assets/js/sorter.js" type="text/javascript"></script>
+        <script type="text/javascript" src="assets/js/jquery.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="assets/js/bootstrap.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="assets/js/scripts.js" type="text/javascript"></script>
+        <!-- Isotope - Portfolio Sorting -->
+        <script type="text/javascript" src="assets/js/jquery.isotope.js" type="text/javascript"></script>
+        <!-- Mobile Menu - Slicknav -->
+        <script type="text/javascript" src="assets/js/jquery.slicknav.js" type="text/javascript"></script>
+        <!-- Animate on Scroll-->
+        <script type="text/javascript" src="assets/js/jquery.visible.js" charset="utf-8"></script>
+        <!-- Modernizr -->
+        <script src="assets/js/modernizr.custom.js" type="text/javascript"></script>
+        <!-- End JS -->
+    </body>
 </html>
+<!-- === END FOOTER === -->

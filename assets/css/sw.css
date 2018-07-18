@@ -1,0 +1,80 @@
+table {
+    border: 1px solid #ccc;
+    width: 100%;
+    margin:0;
+    padding:0;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  table tr {
+    border: 1px solid #ddd;
+    padding: 5px;
+	background: #fff;
+
+  }
+
+  /* table tr:nth-child(6n), tr:nth-child(6n-1), tr:nth-child(6n-2){background-color:#f2f2f2;} */
+  table tr:nth-child(even){background-color:#f2f2f2;}
+  table tr:hover {background-color:#ddd;}
+  
+  
+  table th, table td {
+    padding: 8px;
+    text-align: center;
+	border: 1px solid #ddd;
+  }
+
+  table th {
+    letter-spacing: .5px;
+	background-color:#5eb4ff;
+  }
+
+  
+  
+  @media screen and (max-width: 200px) {
+
+   #card table {
+      border: 0;
+    }
+
+   #card table thead {
+      display: none;
+    }
+
+   #card table tr {
+      margin-bottom: 20px;
+      display: block;
+      border-bottom: 2px solid #ddd;
+	 box-shadow: 2px 2px 1px #dadada;
+
+    }
+
+   #card table td {
+      display: block;
+      text-align: right;
+      font-size: 10px;
+    }
+
+   #card table td:last-child {
+      border-bottom: 0;
+    }
+
+   #card table td::before {
+      content: attr(data-label);
+      float: left;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    	#card	tbody{
+			line-height:0!important;
+		}
+
+  }
+  
+form  { display: table;      }
+p     { display: table-row;  }
+label { display: table-cell;
+white-space:nowrap;
+text-align:right; }
+input { display: table-cell; }
